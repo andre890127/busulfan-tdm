@@ -4,8 +4,6 @@ Clinical pharmacokinetic calculator for therapeutic drug monitoring (TDM) of int
 
 ## Live Demo
 
-https://andre890127.github.io/REPOSITORY-NAME/
-
 Replace `REPOSITORY-NAME` with your GitHub repository name.
 
 Example:
