@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Busulfan TDM q24h – Calculadora de AUC</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d1117; --surface: #161b22; --surface2: #21262d; --border: #30363d;
+    --accent: #00d4aa; --accent2: #0099cc; --warn: #f79000; --danger: #e74c3c;
+    --text: #e6edf3; --muted: #8b949e; --font: 'IBM Plex Sans', sans-serif; --mono: 'IBM Plex Mono', monospace;
+  }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; padding: 0; font-size: 14px; line-height: 1.6; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 20px 32px; display: flex; align-items: center; gap: 16px; position: sticky; top: 0; z-index: 10; }
+  .logo-mark { width: 36px; height: 36px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 13px; font-weight: 500; color: #000; flex-shrink: 0; }
+  header h1 { font-size: 16px; font-weight: 500; color: var(--text); letter-spacing: 0.01em; }
+  header p { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 1px; }
+  .badge { margin-left: auto; background: rgba(0,212,170,0.12); color: var(--accent); border: 1px solid rgba(0,212,170,0.3); font-size: 10px; font-family: var(--mono); padding: 3px 8px; border-radius: 4px; letter-spacing: 0.05em; }
+  main { max-width: 900px; margin: 0 auto; padding: 28px 20px 60px; }
+  .section-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; color: var(--accent); text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+  .patient-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  label { display: block; font-size: 11px; color: var(--muted); font-family: var(--mono); letter-spacing: 0.06em; margin-bottom: 5px; text-transform: uppercase; }
+  input[type="number"], select { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-family: var(--mono); font-size: 14px; padding: 9px 12px; border-radius: 6px; outline: none; transition: border-color 0.15s; -moz-appearance: textfield; }
+  input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  input[type="number"]:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,212,170,0.1); }
+  .points-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .point-field { position: relative; }
+  .point-field label { display: flex; align-items: center; gap: 6px; }
+  .time-badge { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); font-family: var(--mono); font-size: 10px; padding: 1px 5px; border-radius: 3px; }
+  .unit-suffix { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); margin-top: 11px; font-family: var(--mono); font-size: 10px; color: var(--muted); pointer-events: none; }
+  .btn-primary { background: var(--accent); color: #000; border: none; font-family: var(--mono); font-size: 13px; font-weight: 500; padding: 11px 28px; border-radius: 6px; cursor: pointer; letter-spacing: 0.05em; transition: opacity 0.15s, transform 0.1s; }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-secondary { background: transparent; color: var(--muted); border: 1px solid var(--border); font-family: var(--mono); font-size: 12px; padding: 9px 16px; border-radius: 6px; cursor: pointer; transition: color 0.15s, border-color 0.15s; }
+  .btn-secondary:hover { color: var(--text); border-color: var(--muted); }
+  .result-panel { display: none; margin-top: 24px; }
+  .result-panel.visible { display: block; }
+  .auc-hero { background: var(--surface); border: 1px solid var(--accent); border-radius: 10px; padding: 24px; text-align: center; margin-bottom: 20px; }
+  .auc-label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; color: var(--accent); text-transform: uppercase; margin-bottom: 6px; }
+  .auc-value { font-family: var(--mono); font-size: 48px; font-weight: 500; color: var(--text); line-height: 1; }
+  .auc-unit { font-family: var(--mono); font-size: 14px; color: var(--muted); margin-top: 6px; }
+  .auc-status { margin-top: 14px; display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-family: var(--mono); padding: 5px 14px; border-radius: 20px; font-weight: 500; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .status-low { background: rgba(247,144,0,0.15); color: var(--warn); border: 1px solid rgba(247,144,0,0.3); }
+  .status-low .status-dot { background: var(--warn); }
+  .status-ok { background: rgba(0,212,170,0.12); color: var(--accent); border: 1px solid rgba(0,212,170,0.3); }
+  .status-ok .status-dot { background: var(--accent); }
+  .status-high { background: rgba(231,76,60,0.12); color: var(--danger); border: 1px solid rgba(231,76,60,0.3); }
+  .status-high .status-dot { background: var(--danger); }
+  .metrics-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+  .metric { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+  .metric-label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 5px; }
+  .metric-value { font-family: var(--mono); font-size: 20px; font-weight: 500; color: var(--text); }
+  .metric-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .chart-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+  .chart-title { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; margin-bottom: 14px; }
+  .chart-container { position: relative; height: 240px; }
+  .dose-section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+  .dose-toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+  .toggle-sw { width: 36px; height: 20px; background: var(--border); border-radius: 10px; position: relative; transition: background 0.2s; flex-shrink: 0; }
+  .toggle-sw::after { content: ''; position: absolute; width: 14px; height: 14px; background: var(--muted); border-radius: 50%; top: 3px; left: 3px; transition: transform 0.2s, background 0.2s; }
+  .toggle-sw.on { background: rgba(0,212,170,0.2); }
+  .toggle-sw.on::after { transform: translateX(16px); background: var(--accent); }
+  .dose-body { display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .dose-body.open { display: block; }
+  .dose-result { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-top: 14px; font-family: var(--mono); font-size: 13px; line-height: 1.8; }
+  .dose-highlight { font-size: 22px; font-weight: 500; color: var(--accent2); display: block; margin: 6px 0 2px; }
+  .trapz-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; margin-top: 14px; }
+  .trapz-table th { text-align: left; color: var(--muted); padding: 6px 10px; border-bottom: 1px solid var(--border); font-weight: 400; text-transform: uppercase; font-size: 10px; letter-spacing: 0.06em; }
+  .trapz-table td { padding: 6px 10px; border-bottom: 1px solid rgba(48,54,61,0.5); color: var(--text); }
+  .trapz-table tr:last-child td { border-bottom: none; }
+  .trapz-table td:last-child { color: var(--accent); text-align: right; }
+  .disclaimer { background: rgba(247,144,0,0.06); border: 1px solid rgba(247,144,0,0.2); border-radius: 10px; padding: 18px 20px; margin-bottom: 20px; }
+  .disclaimer-title { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; color: var(--warn); text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 7px; }
+  .disclaimer p { font-size: 12px; color: var(--muted); line-height: 1.7; margin-bottom: 8px; }
+  .disclaimer p:last-child { margin-bottom: 0; }
+  .refs { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+  .refs-title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin-bottom: 12px; }
+  .ref-item { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(48,54,61,0.5); font-size: 12px; color: var(--muted); line-height: 1.6; }
+  .ref-item:last-child { border-bottom: none; }
+  .ref-num { font-family: var(--mono); font-size: 10px; color: var(--accent2); min-width: 18px; padding-top: 2px; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+  .error-msg { background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3); border-radius: 6px; padding: 10px 14px; font-family: var(--mono); font-size: 12px; color: var(--danger); margin-top: 12px; display: none; }
+  .regime-chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(0,153,204,0.12); border: 1px solid rgba(0,153,204,0.3); color: var(--accent2); font-family: var(--mono); font-size: 11px; padding: 4px 10px; border-radius: 4px; margin-left: 12px; }
+  @media (max-width: 600px) { .patient-grid { grid-template-columns: 1fr 1fr; } .points-grid { grid-template-columns: repeat(2, 1fr); } .metrics-row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">Bu</div>
+  <div>
+    <h1>Monitorização de Busulfano — TDM <span class="regime-chip">q24h · dose única diária</span></h1>
+    <p>Farmacocinética clínica · Cálculo de AUC por regra trapezoidal · Alvo: 4.000–6.000 µM·min</p>
+  </div>
+  <span class="badge">USO CLÍNICO</span>
+</header>
+
+<main>
+
+  <div class="section-label">Dados do Paciente</div>
+
+  <div class="card">
+    <div class="patient-grid">
+      <div>
+        <label>Peso atual (kg)</label>
+        <input type="number" id="weight" min="1" max="300" step="0.1" placeholder="Ex: 70.0">
+      </div>
+      <div>
+        <label>Dose administrada (mg)</label>
+        <input type="number" id="dose" min="0" step="0.1" placeholder="Ex: 260.0">
+      </div>
+      <div>
+        <label>Esquema</label>
+        <select id="route" disabled>
+          <option value="q24h">IV 1×/dia (q24h)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-top: 8px;">Concentrações Plasmáticas (mcg/mL)</div>
+
+    <div class="points-grid" id="conc-inputs"></div>
+
+    <div class="error-msg" id="err-msg">Preencha todos os 11 pontos com valores ≥ 0 para calcular.</div>
+
+    <div class="btn-row">
+      <button class="btn-primary" onclick="calcAUC()">Calcular AUC</button>
+      <button class="btn-secondary" onclick="fillExample()">Carregar exemplo clínico</button>
+      <button class="btn-secondary" onclick="clearAll()">Limpar tudo</button>
+    </div>
+  </div>
+
+  <div class="result-panel" id="result-panel">
+
+    <div class="section-label">Resultado Farmacocinético</div>
+
+    <div class="auc-hero">
+      <div class="auc-label">AUC total estimada — dose única diária (q24h)</div>
+      <div class="auc-value" id="res-auc">—</div>
+      <div class="auc-unit">µM·min</div>
+      <div class="auc-status" id="res-status"></div>
+    </div>
+
+<div class="metrics-row">
+      <div class="metric">
+        <div class="metric-label">Cmax</div>
+        <div class="metric-value" id="res-cmax">—</div>
+        <div class="metric-sub">mcg/mL</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">t½ eliminação</div>
+        <div class="metric-value" id="res-thalf">—</div>
+        <div class="metric-sub">min</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Exposição/dose</div>
+        <div class="metric-value" id="res-auc-dose">—</div>
+        <div class="metric-sub">(µM·min)/(mg/kg)</div>
+      </div>
+    </div>
+    <div class="metrics-row" style="margin-top: -8px;">
+      <div class="metric">
+        <div class="metric-label">AUC trapézio (0→480)</div>
+        <div class="metric-value" id="res-auc-trap">—</div>
+        <div class="metric-sub">µM·min</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">AUC cauda (480→∞)</div>
+        <div class="metric-value" id="res-auc-tail">—</div>
+        <div class="metric-sub">µM·min</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">R² ajuste terminal</div>
+        <div class="metric-value" id="res-r2">—</div>
+        <div class="metric-sub">últimos 4 pontos</div>
+      </div>
+    </div>
+    <div class="error-msg" id="r2-warn" style="margin-bottom: 16px;">
+      ⚠ R² &lt; 0,98 — ajuste monoexponencial da fase terminal com baixa qualidade. Verifique se os últimos pontos estão na fase de eliminação pura.
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart-title">Curva de concentração–tempo · Busulfano q24h</div>
+      <div class="chart-container">
+        <canvas id="pk-chart" role="img" aria-label="Gráfico da curva de concentração plasmática de busulfano ao longo do tempo em esquema q24h"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart-title">Contribuição trapezoidal por intervalo</div>
+      <table class="trapz-table">
+        <thead><tr><th>Intervalo (min)</th><th>C1 (mcg/mL)</th><th>C2 (mcg/mL)</th><th>ΔT (min)</th><th>Área (mcg·min/mL)</th></tr></thead>
+        <tbody id="trapz-body"></tbody>
+      </table>
+    </div>
+
+    <div class="dose-section">
+      <div class="dose-toggle" onclick="toggleDose()">
+        <div class="toggle-sw" id="dose-sw"></div>
+        <span style="font-size:13px; color: var(--text);">Sugerir nova dose</span>
+        <span style="font-size:11px; color: var(--muted); margin-left: 4px;">— proporcionalidade linear</span>
+      </div>
+      <div class="dose-body" id="dose-body">
+        <div class="patient-grid" style="margin-bottom: 12px;">
+          <div>
+            <label>AUC-alvo (µM·min) — q24h</label>
+            <input type="number" id="target-auc" value="5000" min="2000" max="8000" step="100">
+          </div>
+          <div>
+            <label>Referência da meta</label>
+            <select id="target-ref">
+              <option value="russell">Russell et al. 2013 (~5.000)</option>
+              <option value="custom">Personalizado</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="calcDose()" style="font-size:12px; padding: 9px 20px;">Calcular dose ajustada</button>
+        <div class="dose-result" id="dose-result" style="display:none;"></div>
+      </div>
+    </div>
+
+    <div class="section-label">Referência de Interpretação — Esquema q24h</div>
+
+    <div class="card" style="font-family: var(--mono); font-size: 12px; line-height: 1.9; color: var(--muted);">
+      <div style="display: grid; grid-template-columns: auto 1fr; gap: 4px 20px; align-items: center;">
+        <span style="color: var(--danger); font-size: 18px;">●</span><span><strong style="color:var(--danger)">AUC &lt; 4.000 µM·min</strong> — subexposição; </span>
+        <span style="color: var(--accent); font-size: 18px;">●</span><span><strong style="color:var(--accent)">AUC 4.000–6.000 µM·min</strong> — janela terapêutica alvo</span>
+        <span style="color: var(--danger); font-size: 18px;">●</span><span><strong style="color:var(--danger)">AUC &gt; 6.000 µM·min</strong> — sobreexposição;</span>
+      </div>
+      <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted);">
+        Equivalência aproximada: 1 dose q24h AUC ≈ 4× AUC de dose q6h. Metas podem variar conforme protocolo institucional, diagnóstico e regime associado (BuCy, BuFlu etc.).
+      </div>
+    </div>
+
+  </div>
+
+  <div class="disclaimer">
+    <div class="disclaimer-title">⚠ Aviso Clínico Obrigatório</div>
+    <p>Esta calculadora é um <strong>instrumento de apoio à decisão clínica</strong> e não substitui o julgamento médico especializado. O ajuste de dose de busulfano deve ser realizado por equipe multidisciplinar com experiência em TCTH e farmácia clínica oncológica.</p>
+    <p>Os valores de AUC-alvo para o esquema q24h são baseados principalmente em Russell et al. (2013) e podem variar conforme protocolo institucional, diagnóstico e condicionamento associado (BuCy, BuFlu, etc.). A coleta das amostras e o protocolo de TDM devem seguir a SOP do serviço.</p>
+    <p>Não utilizar para fins diagnósticos, prognósticos ou terapêuticos definitivos sem validação farmacêutica e médica. Toda prescrição de ajuste de dose deve ser assinada por médico responsável (CRM).</p>
+  </div>
+
+  <div class="refs">
+    <div class="refs-title">Referências — TDM de Busulfano em Esquema q24h</div>
+    <div class="ref-item"><span class="ref-num">1</span><span>Domingos V et al. <em>A practical guide to therapeutic drug monitoring in busulfan: recommendations from the Pharmacist Committee of the European Society for Blood and Marrow Transplantation (EBMT).</em> Bone Marrow Transplant. 2024;59(12):1641-1653.</span></div>
+    <div class="ref-item"><span class="ref-num">1</span><span>Russell JA et al. <em>Establishing a target exposure for once-daily intravenous busulfan given with fludarabine and thymoglobulin before allogeneic transplantation</em> Biol Blood Marrow Transplant. 2013;19(9):1381-6.</span></div>
+    </div>
+
+</main>
+
+<script>
+const TIMES = [0, 30, 60, 90, 120, 180, 240, 300, 360, 420, 480];
+const BU_MW = 246.3;
+
+function buildInputs() {
+  const grid = document.getElementById('conc-inputs');
+  TIMES.forEach((t, i) => {
+    const div = document.createElement('div');
+    div.className = 'point-field';
+    div.innerHTML = '<label>t=<span class="time-badge">' + t + ' min</span></label><input type="number" id="c' + i + '" min="0" step="0.001" placeholder="0.000"><span class="unit-suffix">mcg/mL</span>';
+    grid.appendChild(div);
+  });
+}
+
+function getConcs() {
+  return TIMES.map((_, i) => {
+    const v = parseFloat(document.getElementById('c' + i).value);
+    return isNaN(v) ? null : v;
+  });
+}
+
+function trapezoidAUC(times, concs) {
+  let auc = 0;
+  const segs = [];
+  for (let i = 0; i < times.length - 1; i++) {
+    const dt = times[i+1] - times[i];
+    const area = ((concs[i] + concs[i+1]) / 2) * dt;
+    auc += area;
+    segs.push({ t1: times[i], t2: times[i+1], c1: concs[i], c2: concs[i+1], dt, area });
+  }
+  return { auc, segs };
+}
+
+function mcgToMuM(v) { return (v / BU_MW) * 1000; }
+
+function calcLambdaZ(times, concs, nPoints) {
+  const n = nPoints || 4;
+  const t = times.slice(-n);
+  const c = concs.slice(-n);
+
+  // The terminal-phase fit uses ln(concentration), so all terminal values
+  // must be strictly positive and must show a declining elimination phase.
+  if (c.some(v => !Number.isFinite(v) || v <= 0)) {
+    return { lambdaZ: NaN, r2: NaN, thalf: NaN, valid: false };
+  }
+
+  const logC = c.map(v => Math.log(v));
+  const meanT = t.reduce((a,b) => a+b,0) / n;
+  const meanLC = logC.reduce((a,b) => a+b,0) / n;
+  let num = 0, den = 0;
+  for (let i = 0; i < n; i++) {
+    num += (t[i] - meanT) * (logC[i] - meanLC);
+    den += (t[i] - meanT) ** 2;
+  }
+
+  const slope = num / den;
+  const lambdaZ = -slope;
+  const intercept = meanLC - slope * meanT;
+  const ssRes = logC.reduce((a,v,i) => a + (v - (slope*t[i]+intercept))**2, 0);
+  const ssTot = logC.reduce((a,v) => a + (v - meanLC)**2, 0);
+  const r2 = ssTot === 0 ? NaN : 1 - ssRes/ssTot;
+  const thalf = Math.log(2) / lambdaZ;
+
+  if (!Number.isFinite(lambdaZ) || lambdaZ <= 0 || !Number.isFinite(thalf)) {
+    return { lambdaZ, r2, thalf, valid: false };
+  }
+
+  return { lambdaZ, r2, thalf, valid: true };
+} 
+
+let pkChart = null;
+
+function calcAUC() {
+  const concs = getConcs();
+  const err = document.getElementById('err-msg');
+  if (concs.some(c => c === null || c < 0)) { err.style.display = 'block'; return; }
+  err.style.display = 'none';
+
+  const { auc, segs } = trapezoidAUC(TIMES, concs);
+  const aucMuM = mcgToMuM(auc);
+  const cmax = Math.max(...concs);
+  const weight = parseFloat(document.getElementById('weight').value) || null;
+  const dose = parseFloat(document.getElementById('dose').value) || null;
+
+  const lz = calcLambdaZ(TIMES, concs, 4);
+  const clast = concs[concs.length - 1];
+  const aucTail = lz.valid ? clast / lz.lambdaZ : 0;
+  const aucTotal = auc + aucTail;
+  const aucTotalMuM = mcgToMuM(aucTotal);
+
+  document.getElementById('res-auc').textContent = aucTotalMuM.toFixed(0);
+  document.getElementById('res-cmax').textContent = cmax.toFixed(3);
+  document.getElementById('res-thalf').textContent = lz.valid ? lz.thalf.toFixed(0) : '—';
+  document.getElementById('res-auc-tail').textContent = lz.valid ? mcgToMuM(aucTail).toFixed(0) : '—';
+  document.getElementById('res-r2').textContent = Number.isFinite(lz.r2) ? lz.r2.toFixed(3) : '—';
+  document.getElementById('res-auc-trap').textContent = aucMuM.toFixed(0);
+
+  const r2warn = document.getElementById('r2-warn');
+  r2warn.style.display = (!lz.valid || !Number.isFinite(lz.r2) || lz.r2 < 0.98) ? 'block' : 'none';
+
+  if (weight && dose) {
+    const dpkg = dose / weight;
+    document.getElementById('res-auc-dose').textContent = (aucTotalMuM / dpkg).toFixed(0);
+  } else {
+    document.getElementById('res-auc-dose').textContent = '—';
+  }
+
+  const statusEl = document.getElementById('res-status');
+  if (aucTotalMuM < 4000) {
+    statusEl.className = 'auc-status status-low';
+    statusEl.innerHTML = '<span class="status-dot"></span>AUC ABAIXO DO ALVO (&lt; 4.000 µM·min) — risco de falha';
+  } else if (aucTotalMuM > 6000) {
+    statusEl.className = 'auc-status status-high';
+    statusEl.innerHTML = '<span class="status-dot"></span>AUC ACIMA DO ALVO (&gt; 6.000 µM·min)' + (aucTotalMuM > 7000 ? ' — toxicidade grave possível' : ' — zona de alerta');
+  } else {
+    statusEl.className = 'auc-status status-ok';
+    statusEl.innerHTML = '<span class="status-dot"></span>AUC DENTRO DA JANELA TERAPÊUTICA (4.000–6.000 µM·min)';
+  }
+
+  const tbody = document.getElementById('trapz-body');
+  tbody.innerHTML = '';
+  segs.forEach(s => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td>' + s.t1 + '–' + s.t2 + '</td><td>' + s.c1.toFixed(3) + '</td><td>' + s.c2.toFixed(3) + '</td><td>' + s.dt + '</td><td>' + s.area.toFixed(2) + '</td>';
+    tbody.appendChild(tr);
+  });
+
+  renderChart(concs);
+  document.getElementById('result-panel').classList.add('visible');
+  document.getElementById('result-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderChart(concs) {
+  if (pkChart) { pkChart.destroy(); pkChart = null; }
+  pkChart = new Chart(document.getElementById('pk-chart'), {
+    type: 'line',
+    data: {
+      labels: TIMES,
+      datasets: [{
+        label: 'Concentração (mcg/mL)',
+        data: concs,
+        borderColor: '#00d4aa',
+        backgroundColor: 'rgba(0,212,170,0.07)',
+        pointBackgroundColor: '#00d4aa',
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        fill: true,
+        tension: 0.25,
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ' ' + ctx.parsed.y.toFixed(3) + ' mcg/mL' } }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'Tempo (min)', color: '#8b949e', font: { family: 'IBM Plex Mono', size: 11 } },
+          grid: { color: 'rgba(48,54,61,0.6)' },
+          ticks: { color: '#8b949e', font: { family: 'IBM Plex Mono', size: 11 }, autoSkip: false }
+        },
+        y: {
+          title: { display: true, text: 'Concentração (mcg/mL)', color: '#8b949e', font: { family: 'IBM Plex Mono', size: 11 } },
+          grid: { color: 'rgba(48,54,61,0.6)' },
+          ticks: { color: '#8b949e', font: { family: 'IBM Plex Mono', size: 11 } },
+          min: 0
+        }
+      }
+    }
+  });
+}
+
+let doseOpen = false;
+function toggleDose() {
+  doseOpen = !doseOpen;
+  document.getElementById('dose-sw').classList.toggle('on', doseOpen);
+  document.getElementById('dose-body').classList.toggle('open', doseOpen);
+}
+
+function calcDose() {
+  const currentAUC = parseFloat(document.getElementById('res-auc').textContent);
+  const targetAUC = parseFloat(document.getElementById('target-auc').value) || 5000;
+  const weight = parseFloat(document.getElementById('weight').value);
+  const dose = parseFloat(document.getElementById('dose').value);
+
+  if (!weight || !dose || !currentAUC || isNaN(currentAUC)) {
+    document.getElementById('dose-result').style.display = 'block';
+    document.getElementById('dose-result').innerHTML = '<span style="color:var(--danger)">Calcule a AUC e preencha peso e dose atual primeiro.</span>';
+    return;
+  }
+
+  const dosePerKg = dose / weight;
+  const newDosePerKg = dosePerKg * (targetAUC / currentAUC);
+  const newDoseTotal = newDosePerKg * weight;
+  const adj = ((newDosePerKg - dosePerKg) / dosePerKg * 100);
+
+  document.getElementById('dose-result').style.display = 'block';
+  document.getElementById('dose-result').innerHTML =
+    '<div style="margin-bottom:10px; color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:0.08em;">Proposta de ajuste de dose — q24h</div>' +
+    '<div style="display:grid; grid-template-columns: auto 1fr; gap: 4px 16px;">' +
+    '<span style="color:var(--muted)">AUC atual:</span><span>' + currentAUC + ' µM·min</span>' +
+    '<span style="color:var(--muted)">AUC-alvo:</span><span>' + targetAUC + ' µM·min</span>' +
+    '<span style="color:var(--muted)">Dose atual:</span><span>' + dosePerKg.toFixed(2) + ' mg/kg · ' + dose.toFixed(1) + ' mg total</span>' +
+    '</div>' +
+    '<div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--border);">' +
+    '<span style="color:var(--muted); font-size:11px">Dose ajustada sugerida:</span>' +
+    '<span class="dose-highlight">' + newDosePerKg.toFixed(2) + ' mg/kg · ' + newDoseTotal.toFixed(1) + ' mg total</span>' +
+    '<span style="font-size:11px; color:' + (adj >= 0 ? 'var(--warn)' : 'var(--accent2)') + '">' +
+    (adj >= 0 ? '▲' : '▼') + ' ' + Math.abs(adj).toFixed(1) + '% em relação à dose atual</span></div>' +
+    '<div style="margin-top:12px; padding:10px; background:rgba(0,153,204,0.08); border:1px solid rgba(0,153,204,0.2); border-radius:6px; font-size:11px; color:var(--muted); line-height:1.7;">' +
+    'Método: proporcionalidade linear (AUC ∝ dose). Validar com farmacêutico clínico antes de prescrever. Arredondar para formulação disponível.</div>';
+}
+
+function fillExample() {
+  document.getElementById('weight').value = 72.5;
+  document.getElementById('dose').value = 464.0;
+  const ex = [0, 0.8, 1.7, 2.2, 3.22, 1.95, 1.6, 1.3, 1.0, 0.88, 0.79];
+  ex.forEach((v, i) => { document.getElementById('c' + i).value = v; });
+}
+
+function clearAll() {
+  document.getElementById('weight').value = '';
+  document.getElementById('dose').value = '';
+  TIMES.forEach((_, i) => { document.getElementById('c' + i).value = ''; });
+  document.getElementById('result-panel').classList.remove('visible');
+  document.getElementById('err-msg').style.display = 'none';
+  if (pkChart) { pkChart.destroy(); pkChart = null; }
+}
+
+buildInputs();
+</script>
+</body>
+</html>
