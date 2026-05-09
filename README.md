@@ -4,11 +4,7 @@ Clinical pharmacokinetic calculator for therapeutic drug monitoring (TDM) of int
 
 ## Live Demo
 
-Replace `REPOSITORY-NAME` with your GitHub repository name.
-
-Example:
-
-https://andre890127.github.io/busulfan-tdm/
+[https://andre890127.github.io/busulfan-tdm/](https://andre890127.github.io/busulfan-tdm/)
 
 ---
 
